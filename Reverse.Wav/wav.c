@@ -1,46 +1,84 @@
-//wav.c - a library for working with wave files. It will have the code for the functions declared in the
-//wav.h header.
-
+//Wav.c file to use the functions made in wav.h
 #include <stdlib.h>
 #include <stdio.h>
 #include "wav.h"
 #include "file_lib.h"
 
-//Theoretically the following checks all the needed criteria, does it work who tf knows.
 size_t make_header(wav_header* header){
-    
-    read_file(header->name, &(header->contents));
-    if (header->contents[0] == 'R' && header->contents[1] == 'I' && header->contents[2] == 'F' && header->contents[3]=='F'){
-        //The first 4 bytes must correspond with the file type
-        if (header->contents[8]=='W' && header->contents[9]=='A' && header->contents[10]=='V'&& header->contents[11]=='E'){
-            //Makes sure its a WAV file
+    //Checks the data inside the header and makes sures its all vallid, if its not valid print why and return 1    
+    size_t bytes = read_file(header->name, &(header->contents));
+    if (bytes == 1){
+        return 1; // Error reading file (read_file prints the error for us here)
+    }
 
-            unsigned int format_type = (header->contents[20]|(header->contents[21]<<8));
+    //Check to see if its a RIFF file
+    if (header->contents[0] == 'R' && header->contents[1] == 'I' && header->contents[2] == 'F' && header->contents[3] == 'F'){
+
+        // Check to see if its a WAVE file
+        if (header->contents[8]=='W' && header->contents[9]=='A' && 
+            header->contents[10]=='V' && header->contents[11]=='E'){
+
+            //Check format type (we want 1), making sure the shift is done correctly 
+            unsigned int format_type = ((unsigned int)(unsigned char)header->contents[20])|((unsigned int)(unsigned char)header->contents[21] << 8);
             if(format_type == 1){
-                //Makes sure the format type is correct
 
-                unsigned int channel_type = (header->contents[22]|(header->contents[23]<<8));
-                if (channel_type == 2){
-                //makes sure the channel type is two
-                    return 1;
-                }else{
+                //Check the number of channells (we want 2)
+                header->channels = ((unsigned int)(unsigned char)header->contents[22]|((unsigned int)(unsigned char)header->contents[23] << 8));
+                if (header->channels == 2){
+
+                    //Find the sample rate
+                    unsigned int sample_rate = ((unsigned int)(unsigned char)header->contents[24])|((unsigned int)(unsigned char)header->contents[25] << 8)|((unsigned int)(unsigned char)header->contents[26] << 16)|((unsigned int)(unsigned char)header->contents[27] << 24);
+                    header->sample = sample_rate;
+                    return 0; //If it passes all these tests return 0 (why is this backwards logic)
+                } else {
                     printf("File does not have 2 channels\n");
-                    return 0;
+                    return 1;
                 }
-            }else{
+            } else {
                 printf("File does not have proper format type\n");
-                return 0;
+                return 1;
             }
-        }else{
+        } else {
             printf("File is not a proper WAVE file\n");
-            return 0;
+            return 1;
         }
-    }else{
+    } else {
         printf("File is not a RIFF file\n");
-        return 0;
+        return 1;
     }
 }
 
-size_t load_wav(wav_header head, wav_file file){
-    return 0;
+size_t load_wav(char* path, wav_file* file){
+    //Loads the wav file and sets its properties to there associated values
+    file->header = malloc(sizeof(wav_header)); //Makes a header on the heap we can interact with later
+    file->header->name = path; //Sets the name of the file to the header thats associated to this file
+    file->size = read_file(file->header->name, &(file->data)); //This sets all the data as well as returning the size of the file
+    if (file->size == 1){ //read_file returns 1 in the event of an error
+        return 1; //Returns 1 for an error, read_file prints out why (why is this reverse logic?)
+    } 
+    return 0; //Yipee!
+}
+
+
+size_t make_wav(char* path, wav_file f){
+    // The data for the file starts at byte 45 (this is important later)
+    wav_file nf; // Temp wav to set data to (nf means new file)
+    nf.data = malloc(f.size); //This grabs more memory to make sure we dont change f (NEED TO FREE IT LATER)
+    
+    // Copy header (first 45 bytes unchanged)
+    for (int i = 0; i < 45; i++) {
+        nf.data[i] = f.data[i];
+    }
+
+    // Reverse the audio data (bytes after 45)
+    for (int i = 45; i < f.size; i++) {
+        nf.data[i] = f.data[f.size - 1 - (i - 45)];
+        //this works because f.size is the total size, we minus 1 due to 0 based indexing (makes problems otherwise) then we minus the current index, then we minus 45 since we dont care about the first 45 bits
+    }
+
+    // Write reversed data to file
+    size_t sucess = write_file(path, nf.data, f.size);
+    free(nf.data); //Frees the storage we grabbed earlier
+    return sucess;
+    
 }

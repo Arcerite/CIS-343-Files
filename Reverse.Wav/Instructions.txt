@@ -147,11 +147,11 @@ wav.h is correct and well commented
 wav.c is correct
 Program compiles with no errors or warnings
 Works to perfectly reverse a wave file as described
+
 Prints out the following information when it runs:
 the input file name
 the output file name
 the sample rate
-
 the file size
 the number of channels
 Handles errors gracefully

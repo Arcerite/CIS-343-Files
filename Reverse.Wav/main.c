@@ -69,6 +69,9 @@ int main(int argc, char** argv){
     printer(file, *file.header, argv[2]);
 
     // Step 5: Free memory and end the program
-    free(file.header); 
+    free(file.data);             // allocated in load_wav()
+    free(file.header->contents); // allocated in make_header()
+    free(file.header);           // allocated in load_wav()
+
     return 0;
 }

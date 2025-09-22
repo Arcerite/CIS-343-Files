@@ -29,8 +29,7 @@ size_t make_header(wav_header* header){
     if (header->contents[0] == 'R' && header->contents[1] == 'I' && header->contents[2] == 'F' && header->contents[3] == 'F'){
 
         // Check to see if its a WAVE file
-        if (header->contents[8]=='W' && header->contents[9]=='A' && 
-            header->contents[10]=='V' && header->contents[11]=='E'){
+        if (header->contents[8]=='W' && header->contents[9]=='A' && header->contents[10]=='V' && header->contents[11]=='E'){
 
             //Check format type (we want 1), making sure the shift is done correctly 
             unsigned int format_type = ((unsigned int)(unsigned char)header->contents[20])|((unsigned int)(unsigned char)header->contents[21] << 8);
